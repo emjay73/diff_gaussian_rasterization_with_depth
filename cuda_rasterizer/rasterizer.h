@@ -50,6 +50,10 @@ namespace CudaRasterizer
 			const bool prefiltered,
 			float* out_color,
 			float* out_depth,
+			// emjay added ----------
+			float* out_cov_quat,
+			float* out_cov_scale,				
+			// -----------------------
 			float* out_alpha,
 			int* radii = nullptr,
 			bool debug = false);

@@ -57,11 +57,20 @@ namespace FORWARD
 		const float* features,
 		const float* depths,
 		const float4* conic_opacity,
+		// emjay added -----------
+		const glm::vec4* rotations,
+		const glm::vec3* scales,
+		// ------------------------
 		float* out_alpha,
 		uint32_t* n_contrib,
 		const float* bg_color,
 		float* out_color,
-		float* out_depth);
+		float* out_depth,
+		// emjay added ---------
+		float* out_cov_quat,
+		float* out_cov_scale
+		// ----------------------
+		);
 }
 
 

@@ -83,32 +83,66 @@ class _RasterizeGaussians(torch.autograd.Function):
         if raster_settings.debug:
             cpu_args = cpu_deep_copy_tuple(args) # Copy them before they can be corrupted
             try:
-                num_rendered, color, depth, alpha, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
+                # emjay modified ----------------------
+                num_rendered, color, depth, rendered_cov_quat, rendered_cov_scale, alpha, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
+                # original -------------------------------
+                # num_rendered, color, depth, alpha, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
+                # ----------------------------------------
+
             except Exception as ex:
                 torch.save(cpu_args, "snapshot_fw.dump")
                 print("\nAn error occured in forward. Please forward snapshot_fw.dump for debugging.")
                 raise ex
         else:
-            num_rendered, color, depth, alpha, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
+            # emjay modified --------------
+            num_rendered, color, depth, rendered_cov_quat, rendered_cov_scale, alpha, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
+            # original --------------------
+            # num_rendered, color, depth,  alpha, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
+            # ----------------------------
 
         # Keep relevant tensors for backward
         ctx.raster_settings = raster_settings
         ctx.num_rendered = num_rendered
-        ctx.save_for_backward(colors_precomp, means3D, scales, rotations, cov3Ds_precomp, radii, sh, geomBuffer, binningBuffer, imgBuffer, alpha)
-        return color, depth, alpha, radii
 
+        # emjay modified -----------------
+        ctx.save_for_backward(colors_precomp, means3D, scales, rotations, cov3Ds_precomp, rendered_cov_quat, rendered_cov_scale, radii, sh, geomBuffer, binningBuffer, imgBuffer, alpha)
+        return  color, depth, rendered_cov_quat, rendered_cov_scale, alpha, radii
+        # original ------------------------
+        # ctx.save_for_backward(colors_precomp, means3D, scales, rotations, cov3Ds_precomp, radii, sh, geomBuffer, binningBuffer, imgBuffer, alpha)
+        # return  color, depth, alpha, radii
+        # ----------------------------------
+
+    # emjay modified -------------------------------------------------
     @staticmethod
-    def backward(ctx, grad_out_color, grad_out_depth, grad_out_alpha, _):
+    def backward(ctx, grad_out_color, grad_out_depth, grad_out_cov_quat, grad_out_cov_scale, grad_out_alpha, _):
+    # original -------------------------------------------------------
+    # @staticmethod
+    # def backward(ctx, grad_out_color, grad_out_depth, grad_out_alpha, _):
+    # -------------------------------------------------------------------
+        # print(f'grad_out_color.shape:{grad_out_color.shape}') # [3, 376, 1408]
+        # print(f'grad_out_cov_scale.shape:{grad_out_cov_scale.shape}') # [3, 376, 1408]
+        # print(f'grad_out_cov_quat.shape:{grad_out_cov_quat.shape}') # [4, 376, 1408]
+        # print(f'emjay) grad_out_cov_quat[:,0,0]:{grad_out_cov_quat[:,0,0]}') # [4, 376, 1408]
+        # print(f'emjay) grad_out_color[:,0,0]:{grad_out_color[:,0,0]}') # [3, 376, 1408]
 
         # Restore necessary values from context
         num_rendered = ctx.num_rendered
         raster_settings = ctx.raster_settings
-        colors_precomp, means3D, scales, rotations, cov3Ds_precomp, radii, sh, geomBuffer, binningBuffer, imgBuffer, alpha = ctx.saved_tensors
+
+        # emjay modified --------------
+        colors_precomp, means3D, scales, rotations, cov3Ds_precomp, rendered_cov_quat, rendered_cov_scale, radii, sh, geomBuffer, binningBuffer, imgBuffer, alpha = ctx.saved_tensors
+        # original --------------------
+        # colors_precomp, means3D, scales, rotations, cov3Ds_precomp, radii, sh, geomBuffer, binningBuffer, imgBuffer, alpha = ctx.saved_tensors
+        # ----------------------------
 
         # Restructure args as C++ method expects them
         args = (raster_settings.bg,
                 means3D, 
-                radii, 
+                # emjay added -------------------
+                # rendered_cov_quat, # torch.Size([4, 376, 1408]) # torch.float32
+                # rendered_cov_scale, # torch.Size([3, 376, 1408]) # torch.float32
+                # -------------------------------
+                radii, # torch.Size([2233571]) # torch.int32
                 colors_precomp, 
                 scales, 
                 rotations, 
@@ -120,6 +154,10 @@ class _RasterizeGaussians(torch.autograd.Function):
                 raster_settings.tanfovy, 
                 grad_out_color, 
                 grad_out_depth,
+                # emjay added ------------
+                # grad_out_cov_quat, # [4, 376, 1408]
+                # grad_out_cov_scale, # [3, 376, 1408]
+                # ------------------------
                 grad_out_alpha,
                 sh, 
                 raster_settings.sh_degree, 
@@ -128,7 +166,7 @@ class _RasterizeGaussians(torch.autograd.Function):
                 num_rendered,
                 binningBuffer,
                 imgBuffer,
-                alpha,
+                alpha, # torch.Size([1, 376, 1408]) # torch.float32
                 raster_settings.debug)
 
         # Compute gradients for relevant tensors by invoking backward method

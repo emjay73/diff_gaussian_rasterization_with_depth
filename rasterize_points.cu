@@ -32,7 +32,8 @@ std::function<char*(size_t N)> resizeFunctional(torch::Tensor& t) {
     return lambda;
 }
 
-std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
+// std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
+std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
 RasterizeGaussiansCUDA(
 	const torch::Tensor& background,
 	const torch::Tensor& means3D,
@@ -67,6 +68,10 @@ RasterizeGaussiansCUDA(
 
   torch::Tensor out_color = torch::full({NUM_CHANNELS, H, W}, 0.0, float_opts);
   torch::Tensor out_depth = torch::full({1, H, W}, 0.0, float_opts);
+// emjay added ---------------------
+  torch::Tensor out_cov_quat = torch::full({4, H, W}, 0.0, float_opts);
+  torch::Tensor out_cov_scale = torch::full({3, H, W}, 0.0, float_opts);
+  // ---------------------------------
   torch::Tensor out_alpha = torch::full({1, H, W}, 0.0, float_opts);
   torch::Tensor radii = torch::full({P}, 0, means3D.options().dtype(torch::kInt32));
   
@@ -79,7 +84,7 @@ RasterizeGaussiansCUDA(
   std::function<char*(size_t)> binningFunc = resizeFunctional(binningBuffer);
   std::function<char*(size_t)> imgFunc = resizeFunctional(imgBuffer);
   
-  int rendered = 0;
+  int num_rendered = 0;
   if(P != 0)
   {
 	  int M = 0;
@@ -88,7 +93,7 @@ RasterizeGaussiansCUDA(
 		M = sh.size(1);
       }
 
-	  rendered = CudaRasterizer::Rasterizer::forward(
+	  num_rendered = CudaRasterizer::Rasterizer::forward(
 	    geomFunc,
 		binningFunc,
 		imgFunc,
@@ -111,11 +116,21 @@ RasterizeGaussiansCUDA(
 		prefiltered,
 		out_color.contiguous().data<float>(),
 		out_depth.contiguous().data<float>(),
+		// emjay added ------------------
+		out_cov_quat.contiguous().data<float>(),
+		out_cov_scale.contiguous().data<float>(),
+		// ------------------------------
 		out_alpha.contiguous().data<float>(),
 		radii.contiguous().data<int>(),
 		debug);
   }
-  return std::make_tuple(rendered, out_color, out_depth, out_alpha, radii, geomBuffer, binningBuffer, imgBuffer);
+  return std::make_tuple(num_rendered,
+  	out_color, out_depth, 
+	// emjay added -----------------
+	out_cov_quat, 
+	out_cov_scale, 
+	// -----------------------------
+  	out_alpha, radii, geomBuffer, binningBuffer, imgBuffer);
 }
 
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>

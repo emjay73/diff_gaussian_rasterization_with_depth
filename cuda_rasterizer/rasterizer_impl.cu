@@ -216,6 +216,10 @@ int CudaRasterizer::Rasterizer::forward(
 	const bool prefiltered,
 	float* out_color,
 	float* out_depth,
+	// emjay added ------------------
+	float* out_cov_quat,
+	float* out_cov_scale,
+	// ------------------------------
 	float* out_alpha,
 	int* radii,
 	bool debug)
@@ -329,11 +333,20 @@ int CudaRasterizer::Rasterizer::forward(
 		feature_ptr,
 		geomState.depths,
 		geomState.conic_opacity,
+		// emjay added -----------
+		(glm::vec4*)rotations,
+		(glm::vec3*)scales,
+		// ------------------------
 		out_alpha,
 		imgState.n_contrib,
 		background,
 		out_color,
-		out_depth), debug)
+		out_depth,
+		// emjay added ------------------
+		out_cov_quat,
+		out_cov_scale
+		// ------------------------------
+		), debug)
 
 	return num_rendered;
 }
