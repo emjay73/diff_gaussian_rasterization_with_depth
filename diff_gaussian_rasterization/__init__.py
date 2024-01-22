@@ -181,6 +181,15 @@ class _RasterizeGaussians(torch.autograd.Function):
         else:
              grad_means2D, grad_colors_precomp, grad_opacities, grad_means3D, grad_cov3Ds_precomp, grad_sh, grad_scales, grad_rotations = _C.rasterize_gaussians_backward(*args)
 
+        # print('grad_rotations min/max()')
+        # print(grad_rotations.min().item(), grad_rotations.max().item())
+        # print('grad_scales min/max()')
+        # print(grad_scales.min().item(), grad_scales.max().item())
+        # print('grad_rotations.isnan().sum()')
+        # print(grad_rotations.isnan().sum().item())
+        # print('grad_scales.isnan().sum()')
+        # print(grad_scales.isnan().sum().item())
+
         grads = (
             grad_means3D,
             grad_means2D,
