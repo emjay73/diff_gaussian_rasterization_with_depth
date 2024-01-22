@@ -471,6 +471,10 @@ renderCUDA(
 	__shared__ float4 collected_conic_opacity[BLOCK_SIZE];
 	__shared__ float collected_colors[C * BLOCK_SIZE];
 	__shared__ float collected_depths[BLOCK_SIZE];
+	// emjay added --------------------
+	__shared__ glm::vec4 collected_conic_rotations[BLOCK_SIZE];
+	__shared__ glm::vec3 collected_conic_scales[BLOCK_SIZE];
+	// -----------------------------------
 
 	// In the forward, we stored the final value for T, the
 	// product of all (1 - alpha) factors. 
@@ -488,12 +492,32 @@ renderCUDA(
 	float dL_dpixel[C];
 	float dL_dpixel_depth;
 	float dL_dpixel_alpha;
+
+	// emjay added ----------	 
+	const glm::quat Q_identity(1,0,0,0);   
+    glm::quat accum_quat_pix(1,0,0,0);
+	float dL_doutquat_pix[4]= { 0 };
+	float dL_doutscale_pix[3]= { 0 };
+	// ---------------------
+
 	if (inside) 
 	{
 		for (int i = 0; i < C; i++)
 			dL_dpixel[i] = dL_dpixels[i * H * W + pix_id];
 		dL_dpixel_depth = dL_dpixel_depths[pix_id];
 		dL_dpixel_alpha = dL_dpixel_alphas[pix_id];
+
+		// emjay added ----------
+		accum_quat_pix.w = rendered_cov_quat[0 * H * W + pix_id];
+		accum_quat_pix.x = rendered_cov_quat[1 * H * W + pix_id];
+		accum_quat_pix.y = rendered_cov_quat[2 * H * W + pix_id];
+		accum_quat_pix.z = rendered_cov_quat[3 * H * W + pix_id]; 
+
+		for (int i = 0; i < 4; i++)
+			dL_doutquat_pix[i] = dL_dout_cov_quat[i * H * W + pix_id];
+		for (int i = 0; i < 3; i++)
+			dL_doutscale_pix[i] = dL_dout_cov_scale[i * H * W + pix_id];
+		// ---------------------
 	}
 	float last_alpha = 0;
 	float last_color[C] = { 0 };
@@ -519,6 +543,11 @@ renderCUDA(
 			for (int i = 0; i < C; i++)
 				collected_colors[i * BLOCK_SIZE + block.thread_rank()] = colors[coll_id * C + i];
 			collected_depths[block.thread_rank()] = depths[coll_id];
+
+			// emjay added --------------------
+			collected_conic_rotations[block.thread_rank()] = rotations[coll_id];
+			collected_conic_scales[block.thread_rank()] = scales[coll_id];
+			// --------------------------------
 		}
 		block.sync();
 
@@ -536,6 +565,19 @@ renderCUDA(
 			const float2 d = { xy.x - pixf.x, xy.y - pixf.y };
 			const float4 con_o = collected_conic_opacity[j];
 			const float power = -0.5f * (con_o.x * d.x * d.x + con_o.z * d.y * d.y) - con_o.y * d.x * d.y;
+
+			// emjay added ---------------------
+			glm::vec4 con_r = collected_conic_rotations[j];
+			glm::vec3 con_s = collected_conic_scales[j];
+			glm::quat con_q(1,0,0,0);
+			con_q.w = con_r.x; // emjay: surprisingly, this is the real part // check forward.cu > computeCov3D
+			con_q.x = con_r.y;
+			con_q.y = con_r.z;
+			con_q.z = con_r.w;
+			glm::vec4* dL_drot_global = dL_drot + collected_id[j];
+			glm::vec3* dL_dscale_global = dL_dscale + collected_id[j];
+			// ---------------------------------
+
 			if (power > 0.0f)
 				continue;
 
@@ -567,6 +609,42 @@ renderCUDA(
 				// many that were affected by this Gaussian.
 				atomicAdd(&(dL_dcolors[global_id * C + ch]), dchannel_dcolor * dL_dchannel);
 			}
+
+			// emjay added -------------------------
+            float weight =  alpha*T;
+            float cosTheta = glm::dot(Q_identity, con_q);
+            float angle = glm::acos(cosTheta );		
+			
+			// angle ~ 0
+            if (cosTheta > (1. - glm::epsilon<float>())){  	
+				for(int ch=0; ch<4; ch++){	
+					float doutquat_gquat = weight;					
+					atomicAdd(&(dL_drot_global->x), float(dL_doutquat_pix[0] * doutquat_gquat)); // comment out
+					atomicAdd(&(dL_drot_global->y), float(dL_doutquat_pix[1] * doutquat_gquat)); // comment out
+					atomicAdd(&(dL_drot_global->z), float(dL_doutquat_pix[2] * doutquat_gquat)); // comment out
+					atomicAdd(&(dL_drot_global->w), float(dL_doutquat_pix[3] * doutquat_gquat)); // comment out
+				}
+			}
+			else{                
+				float doutquat_con_q = -glm::sin(weight*angle)/(glm::sin(angle)*glm::sqrt(1-glm::pow(glm::dot(Q_identity, con_q), 2)));
+
+				// accum quat (backward)
+				glm::quat con_q_weighted = glm::mix(Q_identity, con_q, weight);
+				con_q_weighted.x *= -1;
+				con_q_weighted.y *= -1;
+				con_q_weighted.z *= -1;
+				accum_quat_pix *= con_q_weighted; // division.
+				accum_quat_pix = glm::normalize(accum_quat_pix);
+
+				doutquat_con_q *= accum_quat_pix.w;
+				atomicAdd(&(dL_drot_global->x), float(dL_doutquat_pix[0] * doutquat_con_q));
+			}
+			
+			atomicAdd(&(dL_dscale_global->x), dL_doutscale_pix[0]*weight);
+			atomicAdd(&(dL_dscale_global->y), dL_doutscale_pix[1]*weight);
+			atomicAdd(&(dL_dscale_global->z), dL_doutscale_pix[2]*weight);			
+			// ---------------------------------------
+
 			const float dep = collected_depths[j];
 			accum_red = last_alpha * last_depth + (1.f - last_alpha) * accum_red;
 			last_depth = dep;
