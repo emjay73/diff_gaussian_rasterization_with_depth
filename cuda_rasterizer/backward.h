@@ -18,6 +18,10 @@
 #define GLM_FORCE_CUDA
 #include <glm/glm.hpp>
 
+// emjay added ---------------
+#include <glm/gtc/quaternion.hpp>
+//---------------------------
+
 namespace BACKWARD
 {
 	void render(
@@ -31,15 +35,30 @@ namespace BACKWARD
 		const float* colors,
 		const float* depths,
 		const float* accum_alphas,
+		// emjay added --------------		
+		const float* rendered_cov_quat, // [4, 376, 1408]
+		const float* rendered_cov_scale,		// [3, 376, 1408]		
+		const glm::vec3* scales,
+		const glm::vec4* rotations,
+		// --------------------------
 		const uint32_t* n_contrib,
 		const float* dL_dpixels,
 		const float* dL_dpixel_depths,
+		// emjay added --------------					
+		const float* dL_dout_cov_quat, // [4, 376, 1408]
+	  	const float* dL_dout_cov_scale,	// [3, 376, 1408]	
+		// --------------------------
 		const float* dL_dpixel_alphas,
 		float3* dL_dmean2D,
 		float4* dL_dconic2D,
 		float* dL_dopacity,
 		float* dL_dcolors,
-		float* dL_ddepths);
+		float* dL_ddepths,
+		// emjay added --------------	
+		glm::vec3* dL_dscale,
+		glm::vec4* dL_drot		
+		// --------------------------
+		);
 
 	void preprocess(
 		int P, int D, int M,

@@ -424,15 +424,30 @@ renderCUDA(
 	const float* __restrict__ colors,
 	const float* __restrict__ depths,
 	const float* __restrict__ accum_alphas,
+	// emjay added --------------		
+	const float* __restrict__ rendered_cov_quat, // [4, 376, 1408]
+	const float* __restrict__ rendered_cov_scale,		// [3, 376, 1408]		
+	const glm::vec3* __restrict__ scales,
+	const glm::vec4* __restrict__ rotations,
+	// --------------------------
 	const uint32_t* __restrict__ n_contrib,
 	const float* __restrict__ dL_dpixels,
 	const float* __restrict__ dL_dpixel_depths,
+	// emjay added --------------					
+	const float* __restrict__ dL_dout_cov_quat, // [4, 376, 1408]
+	const float* __restrict__ dL_dout_cov_scale,	// [3, 376, 1408]	
+	// --------------------------
 	const float* __restrict__ dL_dpixel_alphas,
 	float3* __restrict__ dL_dmean2D,
 	float4* __restrict__ dL_dconic2D,
 	float* __restrict__ dL_dopacity,
 	float* __restrict__ dL_dcolors,
-	float* __restrict__ dL_ddepths)
+	float* __restrict__ dL_ddepths,
+	// emjay added --------------	
+	glm::vec3* __restrict__ dL_dscale,
+	glm::vec4* __restrict__ dL_drot		
+	// --------------------------
+	)
 {
 	// We rasterize again. Compute necessary block info.
 	auto block = cg::this_thread_block();
@@ -677,15 +692,30 @@ void BACKWARD::render(
 	const float* colors,
 	const float* depths,
 	const float* accum_alphas,
+	// emjay added --------------		
+	const float* rendered_cov_quat, // [4, 376, 1408]
+	const float* rendered_cov_scale,		// [3, 376, 1408]		
+	const glm::vec3* scales,
+	const glm::vec4* rotations,
+	// --------------------------
 	const uint32_t* n_contrib,
 	const float* dL_dpixels,
 	const float* dL_dpixel_depths,
+	// emjay added --------------					
+	const float* dL_dout_cov_quat, // [4, 376, 1408]
+	const float* dL_dout_cov_scale,	// [3, 376, 1408]	
+	// --------------------------
 	const float* dL_dpixel_alphas,
 	float3* dL_dmean2D,
 	float4* dL_dconic2D,
 	float* dL_dopacity,
 	float* dL_dcolors,
-	float* dL_ddepths)
+	float* dL_ddepths,
+	// emjay added --------------	
+	glm::vec3* dL_dscale,
+	glm::vec4* dL_drot		
+	// --------------------------
+	)
 {
 	renderCUDA<NUM_CHANNELS> << <grid, block >> >(
 		ranges,
@@ -697,13 +727,28 @@ void BACKWARD::render(
 		colors,
 		depths,
 		accum_alphas,
+		// emjay added -------------
+        rendered_cov_quat, 
+		rendered_cov_scale,		
+        scales,
+        rotations,
+        // ------------------------- 
 		n_contrib,
 		dL_dpixels,
 		dL_dpixel_depths,
+		// emjay added --------------					
+		dL_dout_cov_quat, // [4, 376, 1408]
+		dL_dout_cov_scale,	// [3, 376, 1408]	
+		// --------------------------
 		dL_dpixel_alphas,
 		dL_dmean2D,
 		dL_dconic2D,
 		dL_dopacity,
 		dL_dcolors,
-		dL_ddepths);
+		dL_ddepths,
+		// emjay added -----------
+        dL_dscale,
+		dL_drot	    
+        // -----------------------
+		);
 }

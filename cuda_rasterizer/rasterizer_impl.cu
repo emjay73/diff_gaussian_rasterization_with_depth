@@ -373,8 +373,16 @@ void CudaRasterizer::Rasterizer::backward(
 	char* binning_buffer,
 	char* img_buffer,
 	const float* accum_alphas,
+	// emjay added ----------------
+	const float* rendered_cov_quat, 
+	const float* rendered_cov_scale, 
+	// -----------------------------
 	const float* dL_dpix,
 	const float* dL_dpix_depth,
+	// emjay added ------------
+	const float* dL_dout_cov_quat,
+	const float* dL_dout_cov_scale,
+	// ------------------------
 	const float* dL_dpix_alpha,
 	float* dL_dmean2D,
 	float* dL_dconic,
@@ -419,15 +427,30 @@ void CudaRasterizer::Rasterizer::backward(
 		color_ptr,
 		geomState.depths,
 		accum_alphas,
+		// emjay added --------------		
+		rendered_cov_quat, // [4, 376, 1408]
+		rendered_cov_scale,		// [3, 376, 1408]		
+		(glm::vec3*)scales,
+		(glm::vec4*)rotations,
+		// --------------------------
 		imgState.n_contrib,
 		dL_dpix,
 		dL_dpix_depth,
+		// emjay added --------------					
+		dL_dout_cov_quat, // [4, 376, 1408]
+	  	dL_dout_cov_scale,	// [3, 376, 1408]	
+		// --------------------------
 		dL_dpix_alpha,
 		(float3*)dL_dmean2D,
 		(float4*)dL_dconic,
 		dL_dopacity,
 		dL_dcolor,
-		dL_ddepth), debug)
+		dL_ddepth,
+		// emjay added --------------	
+		(glm::vec3*)dL_dscale,
+		(glm::vec4*)dL_drot		
+		// --------------------------
+		), debug)
 
 	// Take care of the rest of preprocessing. Was the precomputed covariance
 	// given to us or a scales/rot pair? If precomputed, pass that. If not,

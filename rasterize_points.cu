@@ -137,6 +137,10 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
  RasterizeGaussiansBackwardCUDA(
  	const torch::Tensor& background,
 	const torch::Tensor& means3D,
+	// emjay added -------------------
+	const torch::Tensor& rendered_cov_quat, 
+	const torch::Tensor& rendered_cov_scale, 
+	// -------------------------------
 	const torch::Tensor& radii,
     const torch::Tensor& colors,
 	const torch::Tensor& scales,
@@ -149,6 +153,10 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
 	const float tan_fovy,
     const torch::Tensor& dL_dout_color,
     const torch::Tensor& dL_dout_depth,
+	// emjay added ------------
+	const torch::Tensor& dL_dout_cov_quat, // [4, 376, 1408]
+	const torch::Tensor& dL_dout_cov_scale, // [3, 376, 1408]
+	// ------------------------
 	const torch::Tensor& dL_dout_alpha,
 	const torch::Tensor& sh,
 	const int degree,
@@ -204,8 +212,16 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
 	  reinterpret_cast<char*>(binningBuffer.contiguous().data_ptr()),
 	  reinterpret_cast<char*>(imageBuffer.contiguous().data_ptr()),
 	  out_alpha.contiguous().data<float>(),
+	  // emjay added ----------------
+	  rendered_cov_quat.contiguous().data<float>(), 
+	  rendered_cov_scale.contiguous().data<float>(), 
+	  // -----------------------------
 	  dL_dout_color.contiguous().data<float>(),
 	  dL_dout_depth.contiguous().data<float>(),
+	  // emjay added ------------
+	  dL_dout_cov_quat.contiguous().data<float>(), // [4, 376, 1408]
+	  dL_dout_cov_scale.contiguous().data<float>(), // [3, 376, 1408]
+	  // ------------------------
 	  dL_dout_alpha.contiguous().data<float>(),
 	  dL_dmeans2D.contiguous().data<float>(),
 	  dL_dconic.contiguous().data<float>(),  

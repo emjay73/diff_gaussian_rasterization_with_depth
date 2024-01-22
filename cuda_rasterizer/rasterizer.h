@@ -15,6 +15,10 @@
 #include <vector>
 #include <functional>
 
+// emjay added ---------------
+#include <glm/gtc/quaternion.hpp> 
+// --------------------------
+
 namespace CudaRasterizer
 {
 	class Rasterizer
@@ -78,8 +82,16 @@ namespace CudaRasterizer
 			char* binning_buffer,
 			char* image_buffer,
 			const float* accum_alphas,
+			// emjay added ----------------
+	  		const float* rendered_cov_quat, 
+	  		const float* rendered_cov_scale, 
+	  		// -----------------------------
 			const float* dL_dpix,
 			const float* dL_dpix_depth,
+			// emjay added ------------
+	  		const float* dL_dout_cov_quat,
+	  		const float* dL_dout_cov_scale,
+	  		// ------------------------
 			const float* dL_dpix_dalpha,
 			float* dL_dmean2D,
 			float* dL_dconic,

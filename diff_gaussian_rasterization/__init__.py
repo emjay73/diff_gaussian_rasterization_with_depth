@@ -139,8 +139,8 @@ class _RasterizeGaussians(torch.autograd.Function):
         args = (raster_settings.bg,
                 means3D, 
                 # emjay added -------------------
-                # rendered_cov_quat, # torch.Size([4, 376, 1408]) # torch.float32
-                # rendered_cov_scale, # torch.Size([3, 376, 1408]) # torch.float32
+                rendered_cov_quat, # torch.Size([4, 376, 1408]) # torch.float32
+                rendered_cov_scale, # torch.Size([3, 376, 1408]) # torch.float32
                 # -------------------------------
                 radii, # torch.Size([2233571]) # torch.int32
                 colors_precomp, 
@@ -155,8 +155,8 @@ class _RasterizeGaussians(torch.autograd.Function):
                 grad_out_color, 
                 grad_out_depth,
                 # emjay added ------------
-                # grad_out_cov_quat, # [4, 376, 1408]
-                # grad_out_cov_scale, # [3, 376, 1408]
+                grad_out_cov_quat, # [4, 376, 1408]
+                grad_out_cov_scale, # [3, 376, 1408]
                 # ------------------------
                 grad_out_alpha,
                 sh, 

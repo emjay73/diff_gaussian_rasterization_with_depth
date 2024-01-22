@@ -18,6 +18,10 @@
 #define GLM_FORCE_CUDA
 #include <glm/glm.hpp>
 
+// emjay added ---------------
+#include <glm/gtc/quaternion.hpp> 
+// --------------------------
+
 namespace FORWARD
 {
 	// Perform initial steps for each Gaussian prior to rasterization.

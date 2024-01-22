@@ -42,6 +42,10 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
  RasterizeGaussiansBackwardCUDA(
  	const torch::Tensor& background,
 	const torch::Tensor& means3D,
+	// emjay added -------------------
+	const torch::Tensor& rendered_cov_quat, 
+	const torch::Tensor& rendered_cov_scale, 
+	// -------------------------------
 	const torch::Tensor& radii,
     const torch::Tensor& colors,
 	const torch::Tensor& scales,
@@ -54,6 +58,10 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Te
 	const float tan_fovy,
     const torch::Tensor& dL_dout_color,
 	const torch::Tensor& dL_dout_depth,
+	// emjay added ------------
+	const torch::Tensor& dL_dout_cov_quat, // [4, 376, 1408]
+	const torch::Tensor& dL_dout_cov_scale, // [3, 376, 1408]
+	// ------------------------
 	const torch::Tensor& dL_dout_alpha,
 	const torch::Tensor& sh,
 	const int degree,
