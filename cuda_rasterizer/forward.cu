@@ -14,17 +14,6 @@
 #include <cooperative_groups.h>
 #include <cooperative_groups/reduce.h>
 
-// emjay added ---------------
-// #include <glm/gtc/constants.hpp>
-// #include <glm/gtc/quaternion.hpp>
-// #include <glm/gtc/matrix_transform.hpp>
-// #include <glm/ext/matrix_relational.hpp>
-// #include <glm/ext/vector_relational.hpp>
-// #include <glm/ext/scalar_relational.hpp>
-// #include <glm/glm.hpp>
-// #include <vector>
-//---------------------------
-
 namespace cg = cooperative_groups;
 
 // Forward method for converting the input spherical harmonics
@@ -402,9 +391,7 @@ renderCUDA(
 				C[ch] += features[collected_id[j] * CHANNELS + ch] * alpha * T;
 			D += depths[collected_id[j]] * alpha * T;
 
-			// emjay added --------------------
-			// for (int ch = 0; ch < 4; ch++)
-			
+			// emjay added --------------------			
 			// safe way to copy quat
 			// ref: https://stackoverflow.com/questions/48348509/glmquat-why-the-order-of-x-y-z-w-components-are-mixed					
 			// vec4 to quat. so..
@@ -422,7 +409,6 @@ renderCUDA(
 			S[0] += con_s.x * alpha * T;
 			S[1] += con_s.y * alpha * T;
 			S[2] += con_s.z * alpha * T;
-
 			// --------------------------------
 			T = test_T;
 
@@ -442,9 +428,7 @@ renderCUDA(
 			out_color[ch * H * W + pix_id] = C[ch] + T * bg_color[ch];
 		out_depth[pix_id] = D;
 		// emjay added --------------------
-		// should be r, i, j, k // check utils/graphics_utils.py quaternion_to_matrix //possible indexing?
-		// for (int ch = 0; ch < 4; ch++)
-		// 	out_cov_quat[ch * H * W + pix_id] = Q[ch]; 
+		// should be r, i, j, k // check utils/graphics_utils.py quaternion_to_matrix 
 		Q = glm::normalize(Q);
 		out_cov_quat[0 * H * W + pix_id] = Q.w; 
 		out_cov_quat[1 * H * W + pix_id] = Q.x; 

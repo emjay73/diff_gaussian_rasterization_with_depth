@@ -84,9 +84,7 @@ class _RasterizeGaussians(torch.autograd.Function):
             cpu_args = cpu_deep_copy_tuple(args) # Copy them before they can be corrupted
             try:
                 # emjay modified ----------------------
-                num_rendered, color, depth, rendered_cov_quat, rendered_cov_scale, alpha, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
-                # original -------------------------------
-                # num_rendered, color, depth, alpha, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
+                num_rendered, color, depth, rendered_cov_quat, rendered_cov_scale, alpha, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)                
                 # ----------------------------------------
 
             except Exception as ex:
@@ -95,9 +93,7 @@ class _RasterizeGaussians(torch.autograd.Function):
                 raise ex
         else:
             # emjay modified --------------
-            num_rendered, color, depth, rendered_cov_quat, rendered_cov_scale, alpha, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
-            # original --------------------
-            # num_rendered, color, depth,  alpha, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)
+            num_rendered, color, depth, rendered_cov_quat, rendered_cov_scale, alpha, radii, geomBuffer, binningBuffer, imgBuffer = _C.rasterize_gaussians(*args)            
             # ----------------------------
 
         # Keep relevant tensors for backward
@@ -106,24 +102,13 @@ class _RasterizeGaussians(torch.autograd.Function):
 
         # emjay modified -----------------
         ctx.save_for_backward(colors_precomp, means3D, scales, rotations, cov3Ds_precomp, rendered_cov_quat, rendered_cov_scale, radii, sh, geomBuffer, binningBuffer, imgBuffer, alpha)
-        return  color, depth, rendered_cov_quat, rendered_cov_scale, alpha, radii
-        # original ------------------------
-        # ctx.save_for_backward(colors_precomp, means3D, scales, rotations, cov3Ds_precomp, radii, sh, geomBuffer, binningBuffer, imgBuffer, alpha)
-        # return  color, depth, alpha, radii
+        return  color, depth, rendered_cov_quat, rendered_cov_scale, alpha, radii        
         # ----------------------------------
 
     # emjay modified -------------------------------------------------
     @staticmethod
-    def backward(ctx, grad_out_color, grad_out_depth, grad_out_cov_quat, grad_out_cov_scale, grad_out_alpha, _):
-    # original -------------------------------------------------------
-    # @staticmethod
-    # def backward(ctx, grad_out_color, grad_out_depth, grad_out_alpha, _):
+    def backward(ctx, grad_out_color, grad_out_depth, grad_out_cov_quat, grad_out_cov_scale, grad_out_alpha, _):    
     # -------------------------------------------------------------------
-        # print(f'grad_out_color.shape:{grad_out_color.shape}') # [3, 376, 1408]
-        # print(f'grad_out_cov_scale.shape:{grad_out_cov_scale.shape}') # [3, 376, 1408]
-        # print(f'grad_out_cov_quat.shape:{grad_out_cov_quat.shape}') # [4, 376, 1408]
-        # print(f'emjay) grad_out_cov_quat[:,0,0]:{grad_out_cov_quat[:,0,0]}') # [4, 376, 1408]
-        # print(f'emjay) grad_out_color[:,0,0]:{grad_out_color[:,0,0]}') # [3, 376, 1408]
 
         # Restore necessary values from context
         num_rendered = ctx.num_rendered
@@ -131,8 +116,6 @@ class _RasterizeGaussians(torch.autograd.Function):
 
         # emjay modified --------------
         colors_precomp, means3D, scales, rotations, cov3Ds_precomp, rendered_cov_quat, rendered_cov_scale, radii, sh, geomBuffer, binningBuffer, imgBuffer, alpha = ctx.saved_tensors
-        # original --------------------
-        # colors_precomp, means3D, scales, rotations, cov3Ds_precomp, radii, sh, geomBuffer, binningBuffer, imgBuffer, alpha = ctx.saved_tensors
         # ----------------------------
 
         # Restructure args as C++ method expects them
@@ -180,15 +163,6 @@ class _RasterizeGaussians(torch.autograd.Function):
                 raise ex
         else:
              grad_means2D, grad_colors_precomp, grad_opacities, grad_means3D, grad_cov3Ds_precomp, grad_sh, grad_scales, grad_rotations = _C.rasterize_gaussians_backward(*args)
-
-        # print('grad_rotations min/max()')
-        # print(grad_rotations.min().item(), grad_rotations.max().item())
-        # print('grad_scales min/max()')
-        # print(grad_scales.min().item(), grad_scales.max().item())
-        # print('grad_rotations.isnan().sum()')
-        # print(grad_rotations.isnan().sum().item())
-        # print('grad_scales.isnan().sum()')
-        # print(grad_scales.isnan().sum().item())
 
         grads = (
             grad_means3D,

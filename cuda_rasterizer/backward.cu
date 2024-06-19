@@ -318,19 +318,11 @@ __device__ void computeCov3D(int idx, const glm::vec3 scale, float mod, const gl
 	glm::mat3 Rt = glm::transpose(R);
 	glm::mat3 dL_dMt = glm::transpose(dL_dM);
 
-	// emjay modified ------------------
-	// Gradients of loss w.r.t. scale
-	// glm::vec3* dL_dscale = dL_dscales + idx;
-	// dL_dscale->x += glm::dot(Rt[0], dL_dMt[0]);
-	// dL_dscale->y += glm::dot(Rt[1], dL_dMt[1]);
-	// dL_dscale->z += glm::dot(Rt[2], dL_dMt[2]);
-	// original ------------------------
 	// Gradients of loss w.r.t. scale
 	glm::vec3* dL_dscale = dL_dscales + idx;
 	dL_dscale->x = glm::dot(Rt[0], dL_dMt[0]);
 	dL_dscale->y = glm::dot(Rt[1], dL_dMt[1]);
 	dL_dscale->z = glm::dot(Rt[2], dL_dMt[2]);
-	// --------------------------------
 
 	dL_dMt[0] *= s.x;
 	dL_dMt[1] *= s.y;
@@ -343,21 +335,11 @@ __device__ void computeCov3D(int idx, const glm::vec3 scale, float mod, const gl
 	dL_dq.z = 2 * x * (dL_dMt[1][0] + dL_dMt[0][1]) + 2 * r * (dL_dMt[2][0] - dL_dMt[0][2]) + 2 * z * (dL_dMt[1][2] + dL_dMt[2][1]) - 4 * y * (dL_dMt[2][2] + dL_dMt[0][0]);
 	dL_dq.w = 2 * r * (dL_dMt[0][1] - dL_dMt[1][0]) + 2 * x * (dL_dMt[2][0] + dL_dMt[0][2]) + 2 * y * (dL_dMt[1][2] + dL_dMt[2][1]) - 4 * z * (dL_dMt[1][1] + dL_dMt[0][0]);
 
-	// emjay modified --------------------
-	// // Gradients of loss w.r.t. unnormalized quaternion
-	// float4* dL_drot = (float4*)(dL_drots + idx);
-	// *dL_drot = float4{ dL_drot->x + dL_dq.x, dL_drot->y + dL_dq.y, dL_drot->z + dL_dq.z, dL_drot->w + dL_dq.w };//dnormvdv(float4{ rot.x, rot.y, rot.z, rot.w }, float4{ dL_dq.x, dL_dq.y, dL_dq.z, dL_dq.w });
-	
-	// glm::vec4* dL_drot = dL_drots + idx;
-	// dL_drot->x += dL_dq.x;
-	// dL_drot->y += dL_dq.y;
-	// dL_drot->z += dL_dq.z;
-	// dL_drot->w += dL_dq.w;	
-	// original ---------------------------
+
 	// Gradients of loss w.r.t. unnormalized quaternion
 	float4* dL_drot = (float4*)(dL_drots + idx);
 	*dL_drot = float4{ dL_dq.x, dL_dq.y, dL_dq.z, dL_dq.w };//dnormvdv(float4{ rot.x, rot.y, rot.z, rot.w }, float4{ dL_dq.x, dL_dq.y, dL_dq.z, dL_dq.w });
-	// --------------------------------------
+	
 }
 
 // Backward pass of the preprocessing steps, except
